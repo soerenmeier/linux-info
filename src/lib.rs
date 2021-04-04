@@ -12,6 +12,16 @@
 
 /// Get cpu information.
 pub mod cpu;
+/// Get memory information.
+pub mod memory;
+
+mod util;
+
+
+pub mod size {
+	use super::*;
+	pub use util::Size;
+}
 
 // get cpu info
 // get memory info
