@@ -55,6 +55,92 @@ impl Uptime {
 
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Hostname {
+	raw: String
+}
+
+impl Hostname {
+
+	fn path() -> &'static Path {
+		Path::new("/proc/sys/kernel/hostname")
+	}
+
+	#[cfg(test)]
+	fn from_string(raw: String) -> Self {
+		Self {raw}
+	}
+
+	/// Load hostname synchronously.
+	pub fn load_sync() -> io::Result<Self> {
+		Ok(Self {
+			raw: fs::read_to_string(Self::path())?
+		})
+	}
+
+	/// Load hostname asynchronously.
+	#[cfg(feature = "async")]
+	pub async fn load_async() -> io::Result<Self> {
+		Ok(Self {
+			raw: tokio::fs::read_to_string(Self::path()).await?
+		})
+	}
+
+	/// Get hostname as str.
+	pub fn hostname(&self) -> &str {
+		self.raw.trim()
+	}
+
+	/// Get hostname as raw String (may contain whitespace).
+	pub fn into_string(self) -> String {
+		self.raw
+	}
+
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct OsRelease {
+	raw: String
+}
+
+impl OsRelease {
+
+	fn path() -> &'static Path {
+		Path::new("/proc/sys/kernel/osrelease")
+	}
+
+	#[cfg(test)]
+	fn from_string(raw: String) -> Self {
+		Self {raw}
+	}
+
+	/// Load os release synchronously.
+	pub fn load_sync() -> io::Result<Self> {
+		Ok(Self {
+			raw: fs::read_to_string(Self::path())?
+		})
+	}
+
+	/// Load os release asynchronously.
+	#[cfg(feature = "async")]
+	pub async fn load_async() -> io::Result<Self> {
+		Ok(Self {
+			raw: tokio::fs::read_to_string(Self::path()).await?
+		})
+	}
+
+	/// Get os release as str.
+	pub fn full_str(&self) -> &str {
+		self.raw.trim()
+	}
+
+	/// Get os release as raw String (may contain whitespace).
+	pub fn into_string(self) -> String {
+		self.raw
+	}
+
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -69,5 +155,19 @@ mod tests {
 		assert_eq!(uptime().uptime().unwrap().as_secs(), 220420);
 		// idle time
 		assert_eq!(uptime().idletime().unwrap().as_secs(), 5275548);
+	}
+
+	#[test]
+	fn hostname() {
+		// a useless test
+		let name = Hostname::from_string("test-hostname\n".into());
+		assert_eq!(name.hostname(), "test-hostname");
+	}
+
+	#[test]
+	fn os_release() {
+		// a useless test
+		let name = OsRelease::from_string("test-hostname\n".into());
+		assert_eq!(name.full_str(), "test-hostname");
 	}
 }
