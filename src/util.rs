@@ -57,7 +57,7 @@ impl Size {
 	}
 
 	/// Converts self to gigabytes.
-	pub fn gb(&mut self) -> f64 {
+	pub fn to_gb(&mut self) -> f64 {
 		let n = match *self {
 			Self::B(b) => b / BYTE / BYTE / BYTE,
 			Self::Kb(kb) => kb / BYTE / BYTE,

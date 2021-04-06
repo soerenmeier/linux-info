@@ -7,13 +7,15 @@
 //! - graphics card
 //! - hard drive
 //!
-//! At the moment only cpu is partly implemented.  
+//! At the moment only cpu and memory is partly implemented.  
 //! The api is not finished and feedback appreciated.
 
 /// Get cpu information.
 pub mod cpu;
 /// Get memory information.
 pub mod memory;
+// Get system information (uptime, hostname, usernames, groups).
+pub mod system;
 
 mod util;
 
