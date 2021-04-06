@@ -7,8 +7,7 @@
 //! - graphics card
 //! - hard drive
 //!
-//! At the moment only cpu and memory is partly implemented.  
-//! The api is not finished and feedback appreciated.
+//! The api is not finished and feedback is appreciated.
 
 /// Get cpu information.
 pub mod cpu;
