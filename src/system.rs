@@ -20,18 +20,10 @@ impl Uptime {
 		Self {raw}
 	}
 
-	/// Load uptime synchronously.
-	pub fn load_sync() -> io::Result<Self> {
+	/// Reads uptime from /proc/uptime.
+	pub fn read() -> io::Result<Self> {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
-		})
-	}
-
-	/// Load uptime asynchronously.
-	#[cfg(feature = "async")]
-	pub async fn load_async() -> io::Result<Self> {
-		Ok(Self {
-			raw: tokio::fs::read_to_string(Self::path()).await?
 		})
 	}
 
@@ -71,18 +63,10 @@ impl Hostname {
 		Self {raw}
 	}
 
-	/// Load hostname synchronously.
-	pub fn load_sync() -> io::Result<Self> {
+	/// Reads hostname from /proc/sys/kernel/hostname.
+	pub fn read() -> io::Result<Self> {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
-		})
-	}
-
-	/// Load hostname asynchronously.
-	#[cfg(feature = "async")]
-	pub async fn load_async() -> io::Result<Self> {
-		Ok(Self {
-			raw: tokio::fs::read_to_string(Self::path()).await?
 		})
 	}
 
@@ -114,18 +98,10 @@ impl OsRelease {
 		Self {raw}
 	}
 
-	/// Load os release synchronously.
-	pub fn load_sync() -> io::Result<Self> {
+	/// Reads hostname from /proc/sys/kernel/osrelease.
+	pub fn read() -> io::Result<Self> {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
-		})
-	}
-
-	/// Load os release asynchronously.
-	#[cfg(feature = "async")]
-	pub async fn load_async() -> io::Result<Self> {
-		Ok(Self {
-			raw: tokio::fs::read_to_string(Self::path()).await?
 		})
 	}
 

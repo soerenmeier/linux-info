@@ -3,23 +3,23 @@
 //!
 //! To list all availabe key's [linuxwiki.org](https://linuxwiki.org/proc/meminfo). Or you can use the api
 //! ```
-//! use linux_info::memory::MemoryInfo;
-//! let info = MemoryInfo::load_sync().unwrap();
+//! use linux_info::memory::Memory;
+//! let info = Memory::read().unwrap();
 //! let keys = info.keys();
 //! ```
 
-use crate::size::Size;
+use crate::unit::DataSize;
 
 use std::path::Path;
 use std::{fs, io};
 
 /// Load memory info into this struct.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct MemoryInfo {
+pub struct Memory {
 	raw: String
 }
 
-impl MemoryInfo {
+impl Memory {
 
 	fn path() -> &'static Path {
 		Path::new("/proc/meminfo")
@@ -30,18 +30,10 @@ impl MemoryInfo {
 		Self {raw}
 	}
 
-	/// Load memory infos synchronously.
-	pub fn load_sync() -> io::Result<Self> {
+	/// Read memory infos from /proc/meminfo.
+	pub fn read() -> io::Result<Self> {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
-		})
-	}
-
-	/// Load memory infos asynchronously.
-	#[cfg(feature = "async")]
-	pub async fn load_async() -> io::Result<Self> {
-		Ok(Self {
-			raw: tokio::fs::read_to_string(Self::path()).await?
 		})
 	}
 
@@ -69,23 +61,23 @@ impl MemoryInfo {
 	}
 
 	/// Get size by key.
-	pub fn size_value<'a>(&'a self, key: &str) -> Option<Size> {
-		self.value(key)?
-			.parse().ok()
+	pub fn size_value<'a>(&'a self, key: &str) -> Option<DataSize> {
+		self.value(key)
+			.and_then(DataSize::from_str)
 	}
 
 	/// Returns the total memory.
-	pub fn total_memory(&self) -> Option<Size> {
+	pub fn total_memory(&self) -> Option<DataSize> {
 		self.size_value("MemTotal")
 	}
 
 	/// Returns the free memory.
-	pub fn free_memory(&self) -> Option<Size> {
+	pub fn free_memory(&self) -> Option<DataSize> {
 		self.size_value("MemFree")
 	}
 
 	/// Returns the available memory.
-	pub fn available_memory(&self) -> Option<Size> {
+	pub fn available_memory(&self) -> Option<DataSize> {
 		self.size_value("MemAvailable")
 	}
 
@@ -94,9 +86,10 @@ impl MemoryInfo {
 #[cfg(test)]
 mod tests {
 	use super::*;
+	use crate::unit::DataSizeUnit;
 
-	fn memory_info() -> MemoryInfo {
-		MemoryInfo::from_string("\
+	fn memory_info() -> Memory {
+		Memory::from_string("\
 MemTotal:       32853280 kB
 MemFree:          919776 kB
 MemAvailable:   28781828 kB
@@ -185,7 +178,7 @@ DirectMap1G:    22020096 kB\
 	fn total_memory() {
 		let mem_info = memory_info();
 		let total_memory = mem_info.total_memory().unwrap();
-		assert_eq!(total_memory, Size::Kb(32853280.0));
+		assert_eq!(total_memory.to(&DataSizeUnit::Kb), 32853280.0);
 	}
 
 }

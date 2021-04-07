@@ -1,101 +1,130 @@
 
-use std::str::FromStr;
-use std::{mem, fmt};
+use std::fmt;
 use byte_parser::{StrParser, ParseIterator};
 
 /// Represents a size for example `1024 kB`.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Size {
-	/// byte
-	B(f64),
-	/// kilobyte (kB)
-	Kb(f64),
-	/// megabyte (mB)
-	Mb(f64),
-	/// gigabyte (gB)
-	Gb(f64)
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DataSize {
+	byte: u128
 }
 
-const BYTE: f64 = 1024f64;
+impl DataSize {
 
-impl Size {
-
-	/// Converts self to bytes.
-	pub fn to_b(&mut self) -> f64 {
-		let n = match *self {
-			Self::B(b) => b,
-			Self::Kb(kb) => kb * BYTE,
-			Self::Mb(mb) => mb * BYTE * BYTE,
-			Self::Gb(gb) => gb * BYTE * BYTE * BYTE
-		};
-		mem::swap(self, &mut Self::B(n));
-		n
-	}
-
-	/// Converts self to kilobytes.
-	pub fn to_kb(&mut self) -> f64 {
-		let n = match *self {
-			Self::B(b) => b / BYTE,
-			Self::Kb(kb) => kb,
-			Self::Mb(mb) => mb * BYTE,
-			Self::Gb(gb) => gb * BYTE * BYTE
-		};
-		mem::swap(self, &mut Self::Kb(n));
-		n
-	}
-
-	/// Converts self to megabytes.
-	pub fn to_mb(&mut self) -> f64 {
-		let n = match *self {
-			Self::B(b) => b / BYTE / BYTE,
-			Self::Kb(kb) => kb / BYTE,
-			Self::Mb(mb) => mb,
-			Self::Gb(gb) => gb * BYTE
-		};
-		mem::swap(self, &mut Self::Mb(n));
-		n
-	}
-
-	/// Converts self to gigabytes.
-	pub fn to_gb(&mut self) -> f64 {
-		let n = match *self {
-			Self::B(b) => b / BYTE / BYTE / BYTE,
-			Self::Kb(kb) => kb / BYTE / BYTE,
-			Self::Mb(mb) => mb / BYTE,
-			Self::Gb(gb) => gb
-		};
-		mem::swap(self, &mut Self::Gb(n));
-		n
-	}
-
-}
-
-impl FromStr for Size {
-	type Err = ();
-	fn from_str(s: &str) -> Result<Self, ()> {
+	// not implemeting FromStr because this is private
+	pub(crate) fn from_str(s: &str) -> Option<Self> {
 		let mut iter = StrParser::new(s);
-		let float = parse_f64(&mut iter)
-			.ok_or(())?;
+		let float = parse_f64(&mut iter)?;
 		// now we need to parse the unit
-		let unit = iter.record().consume_to_str().trim();
-		Ok(match unit {
-			"kB" | "kb" => Size::Kb(float),
-			"mB" | "mb" => Size::Mb(float),
-			"gB" | "gb" => Size::Gb(float),
-			u if u.len() == 0 => Size::B(float),
-			_ => return Err(())
+		let unit = iter.record()
+			.consume_to_str()
+			.trim();
+
+		let unit = DataSizeUnit::from_str(unit)?;
+		Some(Self {
+			byte: unit.to_byte(float)
 		})
 	}
+
+	/// Convert the data unit into a specific unit.
+	pub fn to(self, unit: &DataSizeUnit) -> f64 {
+		DataSizeUnit::convert(self.byte, unit)
+	}
+
 }
 
-impl fmt::Display for Size {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum DataSizeUnit {
+	/// Byte
+	B,
+	/// Kilobyte
+	Kb,// 1_000
+	/// Megabyte
+	Mb,// 1_000_000
+	/// Gigabyte
+	Gb,// 1_000_000_000
+	/// Terabyte
+	Tb // 1_000_000_000_000
+}
+
+impl DataSizeUnit {
+
+	const fn val(&self) -> u128 {
 		match self {
-			Self::B(b) => b.fmt(f),
-			Self::Kb(kb) => write!(f, "{} kB", kb),
-			Self::Mb(mb) => write!(f, "{} mB", mb),
-			Self::Gb(gb) => write!(f, "{} gB", gb)
+			Self::B => 1,
+			Self::Kb => 1_000,
+			Self::Mb => 1_000_000,
+			Self::Gb => 1_000_000_000,
+			Self::Tb => 1_000_000_000_000
 		}
+	}
+
+	fn from_str(s: &str) -> Option<Self> {
+		Some(match s {
+			"" => Self::B,
+			s if eqs(s, "b") => Self::B,
+			s if eqs(s, "kb") => Self::Kb,
+			s if eqs(s, "mb") => Self::Mb,
+			s if eqs(s, "gb") => Self::Gb,
+			s if eqs(s, "tb") => Self::Tb,
+			_ => return None
+		})
+	}
+
+	fn to_byte(&self, val: f64) -> u128 {
+		// TODO probably need fix this overflowing
+		(val * self.val() as f64) as u128
+	}
+
+	fn adjust_to(byte: u128) -> Self {
+		match byte {
+			b if b < Self::Kb.val() => Self::B,
+			b if b < Self::Mb.val() => Self::Kb,
+			b if b < Self::Gb.val() => Self::Mb,
+			b if b < Self::Tb.val() => Self::Gb,
+			_ => Self::Tb
+		}
+	}
+
+	fn convert(byte: u128, to: &Self) -> f64 {
+		byte as f64 / to.val() as f64
+	}
+
+	const fn as_str(&self) -> &'static str {
+		match self {
+			Self::B => "b",
+			Self::Kb => "kb",
+			Self::Mb => "mb",
+			Self::Gb => "gb",
+			Self::Tb => "tb"
+		}
+	}
+
+	// val needs to be already adjusted to self
+	fn fmt_val(&self, val: f64, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		use fmt::Display;
+
+		match self {
+			Self::B => val.fmt(f),
+			_ => {
+				val.fmt(f)?;
+				f.write_str(" ")?;
+				f.write_str(self.as_str())
+			}
+		}
+	}
+
+}
+
+#[inline(always)]
+fn eqs(a: &str, b: &str) -> bool {
+	a.eq_ignore_ascii_case(b)
+}
+
+impl fmt::Display for DataSize {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let unit = DataSizeUnit::adjust_to(self.byte);
+		let val = DataSizeUnit::convert(self.byte, &unit);
+		unit.fmt_val(val, f)
 	}
 }
 
@@ -132,27 +161,22 @@ mod tests {
 
 	#[test]
 	fn test_size() {
-		let size: Size = "24576 kB".parse().unwrap();
-		assert_eq!(size, Size::Kb(24576.0));
-	}
-
-	#[test]
-	fn size_kb() {
-		let mut size = Size::B(BYTE);
-		size.to_kb();
-		assert_eq!(size, Size::Kb(1.0));
+		let size = DataSize::from_str("24576 kB").unwrap();
+		assert_eq!(size.to(&DataSizeUnit::Kb), 24576.0);
 	}
 
 	#[test]
 	fn size_str() {
-		let s = Size::B(BYTE);
-		assert_eq!(s.to_string(), "1024");
-		let s = Size::Kb(10.0);
-		assert_eq!(s.to_string(), "10 kB");
-		let s = Size::Mb(42.0);
-		assert_eq!(s.to_string(), "42 mB");
-		let s = Size::Gb(4.2);
-		assert_eq!(s.to_string(), "4.2 gB");
+		let s = DataSize::from_str("1024").unwrap();
+		assert_eq!(s.to_string(), "1.024 kb");
+		let s = DataSize::from_str("10 kb").unwrap();
+		assert_eq!(s.to_string(), "10 kb");
+		let s = DataSize::from_str("42 mB").unwrap();
+		assert_eq!(s.to_string(), "42 mb");
+		let s = DataSize::from_str("4.2 Gb").unwrap();
+		assert_eq!(s.to_string(), "4.2 gb");
+		let s = DataSize::from_str("2000 Tb").unwrap();
+		assert_eq!(s.to_string(), "2000 tb");
 	}
 
 }

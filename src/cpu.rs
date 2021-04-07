@@ -2,8 +2,8 @@
 //! The data is retrieved from `/proc/cpuinfo`
 //!
 //! ```
-//! use linux_info::cpu::CpuInfo;
-//! let info = CpuInfo::load_sync().unwrap();
+//! use linux_info::cpu::Cpu;
+//! let info = Cpu::read().unwrap();
 //! let model_name = info.first_value("model name").unwrap();
 //! // or every model name
 //! let model_names = info.unique_values("model name");
@@ -11,23 +11,22 @@
 //!
 //! To list all availabe key's [linuxwiki.org](https://linuxwiki.org/proc/cpuinfo). Or you can use the api
 //! ```
-//! use linux_info::cpu::CpuInfo;
-//! let info = CpuInfo::load_sync().expect("no cpu info");
+//! use linux_info::cpu::Cpu;
+//! let info = Cpu::read().expect("no cpu info");
 //!	let first = info.first().expect("no cpu found");
 //! let keys = first.keys();
 //! ```
-
 
 use std::path::Path;
 use std::{fs, io};
 
 /// Load cpu info into this struct.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CpuInfo {
+pub struct Cpu {
 	raw: String
 }
 
-impl CpuInfo {
+impl Cpu {
 
 	fn path() -> &'static Path {
 		Path::new("/proc/cpuinfo")
@@ -38,35 +37,22 @@ impl CpuInfo {
 		Self {raw}
 	}
 
-	/// Load cpu infos synchronously.
-	pub fn load_sync() -> io::Result<Self> {
+	/// Reads cpu infos from /proc/cpuinfo.
+	pub fn read() -> io::Result<Self> {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
 		})
 	}
 
-	/// Load cpu infos asynchronously.
-	#[cfg(feature = "async")]
-	pub async fn load_async() -> io::Result<Self> {
-		Ok(Self {
-			raw: tokio::fs::read_to_string(Self::path()).await?
-		})
-	}
-
 	/// Main method to get cpu infos. Returns every entry.
-	pub fn all_infos<'a>(&'a self) -> impl Iterator<Item=CpuInfoEntry<'a>> {
+	pub fn all_infos<'a>(&'a self) -> impl Iterator<Item=CpuEntry<'a>> {
 		self.raw.split("\n\n")
-			.map(CpuInfoEntry::from_str)
+			.map(CpuEntry::from_str)
 	}
 
 	/// Returns the first entry.
-	pub fn first<'a>(&'a self) -> Option<CpuInfoEntry<'a>> {
+	pub fn first<'a>(&'a self) -> Option<CpuEntry<'a>> {
 		self.all_infos().next()
-	}
-
-	/// Returns the amount of cores.
-	pub fn cores(&self) -> usize {
-		self.all_infos().count()
 	}
 
 	/// Returns the value of the first.
@@ -88,14 +74,19 @@ impl CpuInfo {
 		list
 	}
 
+	/// Returns the amount of cores.
+	pub fn cores(&self) -> usize {
+		self.all_infos().count()
+	}
+
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct CpuInfoEntry<'a> {
+pub struct CpuEntry<'a> {
 	raw: &'a str
 }
 
-impl<'a> CpuInfoEntry<'a> {
+impl<'a> CpuEntry<'a> {
 
 	fn from_str(raw: &'a str) -> Self {
 		Self {raw}
@@ -132,8 +123,8 @@ impl<'a> CpuInfoEntry<'a> {
 mod tests {
 	use super::*;
 
-	fn cpu_info() -> CpuInfo {
-		CpuInfo::from_string("\
+	fn cpu_info() -> Cpu {
+		Cpu::from_string("\
 processor	: 16
 vendor_id	: AuthenticAMD
 cpu family	: 23
