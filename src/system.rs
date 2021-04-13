@@ -117,6 +117,62 @@ impl OsRelease {
 
 }
 
+/// Read the load average from /proc/loadavg.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct LoadAvg {
+	raw: String
+}
+
+impl LoadAvg {
+
+	fn path() -> &'static Path {
+		Path::new("/proc/loadavg")
+	}
+
+	#[cfg(test)]
+	fn from_string(raw: String) -> Self {
+		Self {raw}
+	}
+
+	/// Read load average from /proc/loadavg.
+	pub fn read() -> io::Result<Self> {
+		Ok(Self {
+			raw: fs::read_to_string(Self::path())?
+		})
+	}
+
+	/// Get all key and values.
+	pub fn values<'a>(&'a self) -> impl Iterator<Item=&'a str> {
+		self.raw.split(' ')
+			.map(str::trim)
+	}
+
+	/// Get the average of jobs in the queue or waiting for disk I/O.  
+	/// The values are averaged over (1 min, 5 min, 15 min).
+	pub fn average(&self) -> Option<(f32, f32, f32)> {
+		let mut vals = self.values()
+			.take(3)
+			.map(|v| v.parse().ok());
+		Some((vals.next()??, vals.next()??, vals.next()??))
+	}
+
+	/// Returns two values (runnable threads, running threads).
+	pub fn threads(&self) -> Option<(usize, usize)> {
+		let mut vals = self.values()
+			.nth(3)?
+			.split('/')
+			.map(|v| v.parse().ok());
+		Some((vals.next()??, vals.next()??))
+	}
+
+	/// Returns the PID of the most recent process.
+	pub fn newest_pid(&self) -> Option<u32> {
+		self.values().last()?
+			.parse().ok()
+	}
+
+}
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -145,5 +201,13 @@ mod tests {
 		// a useless test
 		let name = OsRelease::from_string("test-hostname\n".into());
 		assert_eq!(name.full_str(), "test-hostname");
+	}
+
+	#[test]
+	fn load_avg() {
+		let s = LoadAvg::from_string("13.37 15.82 16.64 14/1444 436826\n".into());
+		assert_eq!(s.average().unwrap(), (13.37, 15.82, 16.64));
+		assert_eq!(s.threads().unwrap(), (14, 1444));
+		assert_eq!(s.newest_pid().unwrap(), 436826);
 	}
 }
