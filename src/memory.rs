@@ -9,11 +9,12 @@
 //! ```
 
 use crate::unit::DataSize;
+use crate::util::read_to_string_mut;
 
 use std::path::Path;
 use std::{fs, io};
 
-/// Load memory info into this struct.
+/// Read memory information from /proc/meminfo.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Memory {
 	raw: String
@@ -35,6 +36,11 @@ impl Memory {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
 		})
+	}
+
+	/// Reloads information without allocating.
+	pub fn reload(&mut self) -> io::Result<()> {
+		read_to_string_mut(Self::path(), &mut self.raw)
 	}
 
 	/// Get all key and values.

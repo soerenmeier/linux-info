@@ -1,9 +1,12 @@
-//! get system information (uptime, hostname, usernames, groups).
+//! get system information (uptime, hostname, os release, load average, usernames, groups).
+
+use crate::util::read_to_string_mut;
 
 use std::{fs, io};
 use std::path::Path;
 use std::time::Duration;
 
+/// Read uptime information from /proc/uptime.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Uptime {
 	raw: String
@@ -27,6 +30,11 @@ impl Uptime {
 		})
 	}
 
+	/// Reloads information without allocating.
+	pub fn reload(&mut self) -> io::Result<()> {
+		read_to_string_mut(Self::path(), &mut self.raw)
+	}
+
 	/// Main method to get uptime values. Returns every entry.
 	pub fn all_infos<'a>(&'a self) -> impl Iterator<Item=Duration> + 'a {
 		self.raw.split(' ')
@@ -47,6 +55,7 @@ impl Uptime {
 
 }
 
+/// Read the hostname from /proc/sys/kernel/hostname.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Hostname {
 	raw: String
@@ -70,6 +79,11 @@ impl Hostname {
 		})
 	}
 
+	/// Reloads information without allocating.
+	pub fn reload(&mut self) -> io::Result<()> {
+		read_to_string_mut(Self::path(), &mut self.raw)
+	}
+
 	/// Get hostname as str.
 	pub fn hostname(&self) -> &str {
 		self.raw.trim()
@@ -82,6 +96,7 @@ impl Hostname {
 
 }
 
+/// Read the hostname from /proc/sys/kernel/osrelease.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct OsRelease {
 	raw: String
@@ -103,6 +118,11 @@ impl OsRelease {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
 		})
+	}
+
+	/// Reloads information without allocating.
+	pub fn reload(&mut self) -> io::Result<()> {
+		read_to_string_mut(Self::path(), &mut self.raw)
 	}
 
 	/// Get os release as str.
@@ -139,6 +159,11 @@ impl LoadAvg {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
 		})
+	}
+
+	/// Reloads information without allocating.
+	pub fn reload(&mut self) -> io::Result<()> {
+		read_to_string_mut(Self::path(), &mut self.raw)
 	}
 
 	/// Get all key and values.

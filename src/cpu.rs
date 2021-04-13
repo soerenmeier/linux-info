@@ -17,10 +17,12 @@
 //! let keys = first.keys();
 //! ```
 
+use crate::util::read_to_string_mut;
+
 use std::path::Path;
 use std::{fs, io};
 
-/// Load cpu info into this struct.
+/// Read cpu information from /proc/cpuinfo.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Cpu {
 	raw: String
@@ -42,6 +44,11 @@ impl Cpu {
 		Ok(Self {
 			raw: fs::read_to_string(Self::path())?
 		})
+	}
+
+	/// Reloads information without allocating.
+	pub fn reload(&mut self) -> io::Result<()> {
+		read_to_string_mut(Self::path(), &mut self.raw)
 	}
 
 	/// Main method to get cpu infos. Returns every entry.

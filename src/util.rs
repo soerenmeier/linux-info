@@ -1,5 +1,9 @@
 
-use std::fmt;
+use std::{fmt, io};
+use std::io::Read;
+use std::fs::File;
+use std::path::Path;
+
 use byte_parser::{StrParser, ParseIterator};
 
 /// Represents a size for example `1024 kB`.
@@ -10,7 +14,7 @@ pub struct DataSize {
 
 impl DataSize {
 
-	// not implemeting FromStr because this is private
+	// not implemeting FromStr because this is private.
 	pub(crate) fn from_str(s: &str) -> Option<Self> {
 		let mut iter = StrParser::new(s);
 		let float = parse_f64(&mut iter)?;
@@ -154,6 +158,14 @@ where I: ParseIterator<'s> {
 		.parse().ok()
 }
 
+/// Clears the string the writes the entire file to the string.  
+/// Does not allocate in advance like std::fs::read_to_string.
+pub fn read_to_string_mut(path: impl AsRef<Path>, s: &mut String) -> io::Result<()> {
+	s.clear();
+	let mut file = File::open(path)?;
+	file.read_to_string(s)
+		.map(|_| ())
+}
 
 #[cfg(test)]
 mod tests {
