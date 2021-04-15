@@ -1,8 +1,11 @@
 
-use std::{fmt, io};
+use std::{fmt, io, mem};
 use std::io::Read;
 use std::fs::File;
 use std::path::Path;
+use std::ffi::CString;
+use std::os::unix::ffi::OsStrExt;
+use std::convert::TryInto;
 
 use byte_parser::{StrParser, ParseIterator};
 
@@ -198,6 +201,27 @@ pub fn read_to_string_mut(path: impl AsRef<Path>, s: &mut String) -> io::Result<
 		.map(|_| ())
 }
 
+
+fn cstr(path: impl AsRef<Path>) -> io::Result<CString> {
+	CString::new(path.as_ref().as_os_str().as_bytes())
+		.map_err(From::from)
+}
+
+// see https://man7.org/linux/man-pages/man2/fstatfs.2.html
+pub fn statfs(path: impl AsRef<Path>) -> io::Result<libc::statfs> {
+	unsafe {
+		let mut stat = mem::MaybeUninit::<libc::statfs>::uninit();
+		let c = cstr(path)?;
+		let r = libc::statfs(c.as_ptr(), stat.as_mut_ptr());
+		match r {
+			0 => Ok(stat.assume_init()),
+			-1 => Err(io::Error::last_os_error()),
+			_ => panic!("unexpected return value from statfs {:?}", r)
+		}
+	}
+}
+
+
 #[cfg(test)]
 mod tests {
 	use super::*;
@@ -235,6 +259,10 @@ mod tests {
 		assert_eq!(calculate_precision(0.1, 4), 1);
 		assert_eq!(calculate_precision(0.0, 4), 0);
 	}
+
+	#[test]
+	fn run_statfs() {
+		statfs("/").unwrap();
 	}
 
 }

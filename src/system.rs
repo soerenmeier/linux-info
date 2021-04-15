@@ -198,6 +198,11 @@ impl LoadAvg {
 
 }
 
+
+// TODO add https://www.idnt.net/en-US/kb/941772
+// /proc/stat
+
+
 #[cfg(test)]
 mod tests {
 	use super::*;

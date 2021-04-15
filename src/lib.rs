@@ -17,6 +17,8 @@ pub mod cpu;
 pub mod memory;
 // Get system information (uptime, hostname, usernames, groups).
 pub mod system;
+// Get storage information (partitions, raids).
+pub mod storage;
 
 mod util;
 
