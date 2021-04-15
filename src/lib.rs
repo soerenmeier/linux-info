@@ -1,11 +1,8 @@
 //!
-//! A crate that should allow ease of use to get infos
-//! about your linux system.  
-//! Get information about your:
-//! - cpu
-//! - memory
-//!
-//! The api is not finished and feedback is appreciated.
+//! A crate that allows you to get information about your linux system.  
+//! It's still a work in progress put the base modules *cpu*,
+//! *memory*, *system* and *storage* are already there.  
+//! Any feedback is welcome.
 //!
 //! ## Async
 //! At the moment every method here reads from /proc/* which
@@ -17,7 +14,7 @@ pub mod cpu;
 pub mod memory;
 // Get system information (uptime, hostname, usernames, groups).
 pub mod system;
-// Get storage information (partitions, raids).
+// Get storage information (partitions, mounts, stats, raids).
 pub mod storage;
 
 mod util;
@@ -27,9 +24,3 @@ pub mod unit {
 	use super::*;
 	pub use util::{DataSize, DataSizeUnit};
 }
-
-// get cpu info
-// get memory info
-// get graphics info
-// get process info
-// get mdstats

@@ -150,36 +150,6 @@ DirectMap1G:    22020096 kB\
 		".into())
 	}
 
-	// #[test]
-	// fn info_to_vec() {
-	// 	let cpu_info = cpu_info();
-	// 	let v: Vec<_> = cpu_info.all_infos().collect();
-	// 	assert_eq!(v.len(), 2);
-	// }
-
-	// #[test]
-	// fn info_values() {
-	// 	let info = cpu_info();
-	// 	let mut values = info.all_infos();
-	// 	let first = values.next().unwrap();
-	// 	println!("first {:?}", first.values().collect::<Vec<_>>());
-	// 	let model_name = first.value("model name").unwrap();
-	// 	assert_eq!(model_name, "AMD Ryzen 9 3900XT 12-Core Processor");
-	// }
-
-	// #[test]
-	// fn count_cores() {
-	// 	let cpu_info = cpu_info();
-	// 	assert_eq!(cpu_info.cores(), 2);
-	// }
-
-	// #[test]
-	// fn unique_values() {
-	// 	let cpu_info = cpu_info();
-	// 	let un = cpu_info.unique_values("model name");
-	// 	assert_eq!(un.len(), 1);
-	// }
-
 	#[test]
 	fn total_memory() {
 		let mem_info = memory_info();

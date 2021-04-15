@@ -413,11 +413,6 @@ major minor  #blocks  name
 
 }
 
-
 // get block number
 // /sys/block/<part>/dev   returns 7:0
 // uuid /sys/dev/block/7:0/dm/uuid
-
-
-// df reads:
-// /proc/self/mountinfo
