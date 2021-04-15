@@ -115,6 +115,10 @@ impl DataSizeUnit {
 
 	// val needs to be already adjusted to self
 	fn fmt_val(&self, val: f64, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		if val == 0f64 {
+			return write!(f, "{}", val)
+		}
+
 		// calculate the precision we wan't to use
 		let fract = val.fract();
 		let precision = if fract == 0f64 {
