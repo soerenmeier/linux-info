@@ -52,14 +52,14 @@ impl Cpu {
 	}
 
 	/// Main method to get cpu infos. Returns every entry.
-	pub fn all_infos<'a>(&'a self) -> impl Iterator<Item=CpuEntry<'a>> {
+	pub fn entries<'a>(&'a self) -> impl Iterator<Item=CpuEntry<'a>> {
 		self.raw.split("\n\n")
 			.map(CpuEntry::from_str)
 	}
 
 	/// Returns the first entry.
 	pub fn first<'a>(&'a self) -> Option<CpuEntry<'a>> {
-		self.all_infos().next()
+		self.entries().next()
 	}
 
 	/// Returns the value of the first.
@@ -71,7 +71,7 @@ impl Cpu {
 	/// Returns the unique values to a specific key.
 	pub fn unique_values<'a>(&'a self, key: &str) -> Vec<&'a str> {
 		let mut list = vec![];
-		self.all_infos()
+		self.entries()
 			.filter_map(|info| info.value(key))
 			.for_each(|v| {
 				if !list.contains(&v) {
@@ -83,7 +83,7 @@ impl Cpu {
 
 	/// Returns the amount of cores.
 	pub fn cores(&self) -> usize {
-		self.all_infos().count()
+		self.entries().count()
 	}
 
 }
@@ -186,21 +186,21 @@ TLB size	: 3072 4K pages
 clflush size	: 64
 cache_alignment	: 64
 address sizes	: 43 bits physical, 48 bits virtual
-power management: ts ttp tm hwpstate cpb eff_freq_ro [13] [14]\
+power management: ts ttp tm hwpstate cpb eff_freq_ro [13] [14]\n\
 		".into())
 	}
 
 	#[test]
 	fn info_to_vec() {
 		let cpu_info = cpu_info();
-		let v: Vec<_> = cpu_info.all_infos().collect();
+		let v: Vec<_> = cpu_info.entries().collect();
 		assert_eq!(v.len(), 2);
 	}
 
 	#[test]
 	fn info_values() {
 		let info = cpu_info();
-		let mut values = info.all_infos();
+		let mut values = info.entries();
 		let first = values.next().unwrap();
 		println!("first {:?}", first.values().collect::<Vec<_>>());
 		let model_name = first.value("model name").unwrap();

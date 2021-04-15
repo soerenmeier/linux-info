@@ -12,8 +12,6 @@ categories = ["hardware-support"]
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-# async = ["tokio"]
 
 [dependencies]
-# tokio = { version = "1.0", optional = true, features = ["fs"] }
 byte-parser = "0.2"

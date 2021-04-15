@@ -6,10 +6,12 @@ use std::path::Path;
 
 use byte_parser::{StrParser, ParseIterator};
 
+const DEF_PRECISION: usize = 2;
+
 /// Represents a size for example `1024 kB`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataSize {
-	byte: u128
+	bytes: u128
 }
 
 impl DataSize {
@@ -25,13 +27,18 @@ impl DataSize {
 
 		let unit = DataSizeUnit::from_str(unit)?;
 		Some(Self {
-			byte: unit.to_byte(float)
+			bytes: unit.to_byte(float)
 		})
+	}
+
+	pub(crate) fn from_size_bytes(bytes: impl TryInto<u128>) -> Option<Self> {
+		bytes.try_into().ok()
+			.map(|bytes| Self {bytes})
 	}
 
 	/// Convert the data unit into a specific unit.
 	pub fn to(self, unit: &DataSizeUnit) -> f64 {
-		DataSizeUnit::convert(self.byte, unit)
+		DataSizeUnit::convert(self.bytes, unit)
 	}
 
 }
@@ -55,10 +62,10 @@ impl DataSizeUnit {
 	const fn val(&self) -> u128 {
 		match self {
 			Self::B => 1,
-			Self::Kb => 1_000,
-			Self::Mb => 1_000_000,
-			Self::Gb => 1_000_000_000,
-			Self::Tb => 1_000_000_000_000
+			Self::Kb => 1_024,
+			Self::Mb => 1_024 * 1_024,
+			Self::Gb => 1_024 * 1_024 * 1_024,
+			Self::Tb => 1_024 * 1_024 * 1_024 * 1_024
 		}
 	}
 
@@ -105,18 +112,42 @@ impl DataSizeUnit {
 
 	// val needs to be already adjusted to self
 	fn fmt_val(&self, val: f64, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		use fmt::Display;
+		// calculate the precision we wan't to use
+		let fract = val.fract();
+		let precision = if fract == 0f64 {
+			0
+		} else {
 
-		match self {
-			Self::B => val.fmt(f),
-			_ => {
-				val.fmt(f)?;
-				f.write_str(" ")?;
-				f.write_str(self.as_str())
+			let max = f.precision().unwrap_or(DEF_PRECISION);
+
+			if max <= 1 {
+				max
+			} else {
+				calculate_precision(fract, max)
 			}
+		};
+
+		write!(f, "{:.*} {}", precision, val, self.as_str())
+	}
+
+}
+
+fn calculate_precision(mut fract: f64, max: usize) -> usize {
+	let max_number = 10usize.pow(max as u32) as f64;
+
+	// round to the max position
+	fract *= max_number;
+	fract = fract.round();
+
+	// then go slowly back until we hit a fraction
+	for m in (1..=max).rev() {
+		fract /= 10f64;
+		if fract.fract() != 0f64 {
+			return m;
 		}
 	}
 
+	0
 }
 
 #[inline(always)]
@@ -126,8 +157,8 @@ fn eqs(a: &str, b: &str) -> bool {
 
 impl fmt::Display for DataSize {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let unit = DataSizeUnit::adjust_to(self.byte);
-		let val = DataSizeUnit::convert(self.byte, &unit);
+		let unit = DataSizeUnit::adjust_to(self.bytes);
+		let val = DataSizeUnit::convert(self.bytes, &unit);
 		unit.fmt_val(val, f)
 	}
 }
@@ -179,16 +210,31 @@ mod tests {
 
 	#[test]
 	fn size_str() {
+		// TODO update the formatter
 		let s = DataSize::from_str("1024").unwrap();
-		assert_eq!(s.to_string(), "1.024 kb");
+		assert_eq!(s.to_string(), "1 kb");
 		let s = DataSize::from_str("10 kb").unwrap();
 		assert_eq!(s.to_string(), "10 kb");
-		let s = DataSize::from_str("42 mB").unwrap();
-		assert_eq!(s.to_string(), "42 mb");
-		let s = DataSize::from_str("4.2 Gb").unwrap();
-		assert_eq!(s.to_string(), "4.2 gb");
+		let s = DataSize::from_str("42.1 mB").unwrap();
+		assert_eq!(s.to_string(), "42.1 mb");
+		let s = DataSize::from_str("4.22 Gb").unwrap();
+		assert_eq!(s.to_string(), "4.22 gb");
 		let s = DataSize::from_str("2000 Tb").unwrap();
 		assert_eq!(s.to_string(), "2000 tb");
+		// and precision
+		assert_eq!(format!("{:.0}", DataSize::from_str("1.2 kb").unwrap()), "1 kb");
+	}
+
+	#[test]
+	fn test_precision() {
+		assert_eq!(calculate_precision(0.00005, 4), 4);
+		assert_eq!(calculate_precision(0.00001, 4), 0);
+		assert_eq!(calculate_precision(0.0001, 4), 4);
+		assert_eq!(calculate_precision(0.001, 4), 3);
+		assert_eq!(calculate_precision(0.01, 4), 2);
+		assert_eq!(calculate_precision(0.1, 4), 1);
+		assert_eq!(calculate_precision(0.0, 4), 0);
+	}
 	}
 
 }
