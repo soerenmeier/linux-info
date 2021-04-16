@@ -17,7 +17,7 @@ fn main() {
 fn print_point(point: MountPoint) -> Option<()> {
 	let stat = point.stats().ok()?;
 
-	if stat.is_empty() {
+	if !stat.has_blocks() {
 		return None
 	}
 
