@@ -1,7 +1,7 @@
 //! get information about drives and raids.  
 //! Should this be called fs??
 
-use crate::util::read_to_string_mut;
+use crate::util::{read_to_string_mut, blkdev_sector_size};
 use crate::unit::DataSize;
 
 use std::path::Path;
@@ -247,7 +247,7 @@ impl<'a> MountPoint<'a> {
 
 	/// Returns the filesystem statistics of this mount point.
 	pub fn stats(&self) -> io::Result<FsStat> {
-		FsStat::new(self.mount_point().unwrap_or(""))
+		FsStat::read(self.mount_point().unwrap_or(""))
 	}
 
 }
@@ -260,9 +260,11 @@ pub struct FsStat {
 
 impl FsStat {
 
-	fn new(path: impl AsRef<Path>) -> io::Result<Self> {
+	/// Reads filesystems staticstics for a given
+	/// file descriptor.
+	pub fn read(path: impl AsRef<Path>) -> io::Result<Self> {
 		crate::util::statfs(path)
-			.map(|raw| Self {raw})
+			.map(|raw| Self { raw })
 	}
 
 	/// Returns `true` if the total blocks is bigger than zero.
@@ -509,9 +511,16 @@ impl<'a> Raid<'a> {
 
 	/// Returns filesystem statistics to this raid array.
 	pub fn stats(&self) -> io::Result<FsStat> {
-		FsStat::new(format!("/dev/{}", self.name()))
+		FsStat::read(format!("/dev/{}", self.name()))
 	}
 
+}
+
+/// Returns the sector size for a given path.
+/// 
+/// This uses the ioctl call `BLKSSZGET`.
+pub fn sector_size(path: impl AsRef<Path>) -> io::Result<u64> {
+	blkdev_sector_size(fs::File::open(path)?)
 }
 
 

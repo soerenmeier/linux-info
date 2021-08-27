@@ -5,9 +5,12 @@ use std::fs::File;
 use std::path::Path;
 use std::ffi::CString;
 use std::os::unix::ffi::OsStrExt;
+use std::os::unix::prelude::AsRawFd;
 use std::convert::TryInto;
 
 use byte_parser::{StrParser, ParseIterator};
+
+use libc::c_int;
 
 const DEF_PRECISION: usize = 2;
 
@@ -225,6 +228,31 @@ pub fn statfs(path: impl AsRef<Path>) -> io::Result<libc::statfs> {
 	}
 }
 
+// BLKSSZGET
+
+pub fn blkdev_sector_size(fd: impl AsRawFd) -> io::Result<u64> {
+	let s = unsafe {
+		let mut size: c_int = 0;// todo set default to 512
+		match blksszget(fd.as_raw_fd(), &mut size) {
+			-1 => return Err(io::Error::last_os_error()),
+			_ => size
+		}
+	};
+
+	s.try_into()
+		.map_err(|e| io::Error::new(io::ErrorKind::Other, e))
+}
+
+#[cfg(any(
+	target_arch = "x86",
+	target_arch = "arm",
+	target_arch = "x86_64",
+	target_arch = "aarch64"
+))]
+unsafe fn blksszget(fd: c_int, data: *mut c_int) -> c_int {
+	let nr = (0x12 << 8) | (104 << 0);
+	libc::ioctl(fd, nr, data)
+}
 
 #[cfg(test)]
 mod tests {
