@@ -304,7 +304,7 @@ impl EntryPoint {
 				.map_err(|_| Error::EntryPointMalformed)?;
 			// drop file
 		}
-		let mut bytes = Bytes::from(buf.as_slice());
+		let mut bytes = Bytes::from(buf.as_ref());
 
 		// let's check if we have the correct version
 		if bytes.read(ANCHOR_STRING.len()) != ANCHOR_STRING {
