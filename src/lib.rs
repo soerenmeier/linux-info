@@ -16,6 +16,9 @@ pub mod memory;
 pub mod system;
 // Get storage information (partitions, mounts, stats, raids).
 pub mod storage;
+#[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
+/// get bios / system information
+pub mod bios;
 
 mod util;
 

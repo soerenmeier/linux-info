@@ -14,7 +14,7 @@ use libc::c_int;
 
 const DEF_PRECISION: usize = 2;
 
-/// Represents a size for example `1024 kB`.
+/// Represents a size, for example `1024 kB`.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DataSize {
 	bytes: u128
