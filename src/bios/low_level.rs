@@ -6,7 +6,7 @@
 /// the files /sys/firmware/dmi/tables/{smbios_entry_point, DMI}
 
 use std::fs::{self, File};
-use std::io::{self, Read};
+use std::io;
 use std::{iter, str};
 use simple_bytes::{Bytes, BytesRead, BytesReadRef};
 use memchr::memmem;
@@ -300,7 +300,7 @@ impl EntryPoint {
 		{
 			let mut file = File::open(ENTRY_POINT_PATH)
 				.map_err(|_| Error::EntryPointNotFound)?;
-			file.read_exact(&mut buf)
+			io::Read::read_exact(&mut file, &mut buf)
 				.map_err(|_| Error::EntryPointMalformed)?;
 			// drop file
 		}

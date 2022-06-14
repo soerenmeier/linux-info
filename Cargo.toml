@@ -1,7 +1,7 @@
 [package]
 name = "linux-info"
 description = "Get every info about your linux system."
-version = "0.1.8"
+version = "0.1.9"
 authors = ["Sören Meier <soeren@s-me.ch>"]
 repository = "https://github.com/soerenmeier/linux-info"
 edition = "2018"
@@ -23,6 +23,6 @@ path = "./examples/dmidecode_mini.rs"
 [dependencies]
 byte-parser = { version = "0.2.1", features = ["unstable-parse-iter"] }
 libc = "0.2"
-simple-bytes = "0.2.9"
+simple-bytes = "0.2.11"
 memchr = "2.4.1"
 uuid = "0.8"
