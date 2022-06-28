@@ -1,3 +1,4 @@
+//! Connect to the NetworkManager
 
 use std::time::Duration;
 use std::sync::Arc;
@@ -7,8 +8,9 @@ use dbus::{Error, Path};
 use dbus::blocking::{Connection, Proxy};
 use dbus::arg::RefArg;
 
-use nmdbus::{NetworkManager};
+use nmdbus::NetworkManager as DbusNetworkManager;
 use nmdbus::device::Device as DeviceTrait;
+use nmdbus::device_modem::DeviceModem;
 use nmdbus::ip4config::IP4Config;
 
 const DBUS_NAME: &str = "org.freedesktop.NetworkManager";
@@ -16,12 +18,12 @@ const DBUS_PATH: &str = "/org/freedesktop/NetworkManager";
 const TIMEOUT: Duration = Duration::from_secs(2);
 
 #[derive(Clone)]
-pub struct Dbus {
+struct Dbus {
 	conn: Arc<Connection>
 }
 
 impl Dbus {
-	pub fn connect() -> Result<Self, Error> {
+	fn connect() -> Result<Self, Error> {
 		Connection::new_system()
 			.map(Arc::new)
 			.map(|conn| Self { conn })
@@ -33,13 +35,25 @@ impl Dbus {
 	) -> Proxy<'a, &'b Connection> {
 		self.conn.with_proxy(DBUS_NAME, path, TIMEOUT)
 	}
+}
+
+#[derive(Clone)]
+pub struct NetworkManager {
+	dbus: Dbus
+}
+
+impl NetworkManager {
+	pub fn connect() -> Result<Self, Error> {
+		Dbus::connect()
+			.map(|dbus| Self { dbus })
+	}
 
 	pub fn devices(&self) -> Result<Vec<Device>, Error> {
-		let paths = self.proxy(DBUS_PATH).get_devices()?;
+		let paths = self.dbus.proxy(DBUS_PATH).get_devices()?;
 		let devices = paths.into_iter()
 			.map(|path| {
 				Device {
-					dbus: self.clone(),
+					dbus: self.dbus.clone(),
 					path
 				}
 			})
@@ -55,34 +69,52 @@ pub struct Device {
 }
 
 impl Device {
+	/// The path of the device as exposed by the udev property ID_PATH.  
+	/// Note that non-UTF-8 characters are backslash escaped.
+	/// Use g_strcompress() to obtain the true (non-UTF-8) string. 
 	pub fn path(&self) -> Result<String, Error> {
 		self.dbus.proxy(&self.path).path()
 	}
 
+	/// The name of the device's control (and often data) interface. Note that
+	/// non UTF-8 characters are backslash escaped, so the resulting name may
+	/// be longer then 15 characters. Use g_strcompress() to revert the
+	/// escaping.
 	pub fn interface(&self) -> Result<String, Error> {
 		self.dbus.proxy(&self.path).interface()
 	}
 
+	/// The driver handling the device. Non-UTF-8 sequences are backslash
+	/// escaped. Use g_strcompress() to revert. 
 	pub fn driver(&self) -> Result<String, Error> {
 		self.dbus.proxy(&self.path).driver()
 	}
 
+	/// The current state of the device. 
 	pub fn state(&self) -> Result<DeviceState, Error> {
 		DeviceTrait::state(&self.dbus.proxy(&self.path))
 			.map(Into::into)
 	}
 
+	/// The general type of the network device; ie Ethernet, Wi-Fi, etc.
 	pub fn kind(&self) -> Result<DeviceKind, Error> {
 		self.dbus.proxy(&self.path).device_type()
 			.map(Into::into)
 	}
 
+	/// Ipv4 Configuration of the device. Only valid when the device is in
+	/// DeviceState::Activated
 	pub fn ipv4_config(&self) -> Result<Ipv4Config, Error> {
 		self.dbus.proxy(&self.path).ip4_config()
 			.map(|path| Ipv4Config {
 				dbus: self.dbus.clone(),
 				path
 			})
+	}
+
+	/// The access point name the modem is connected to. Blank if disconnected.
+	pub fn modem_apn(&self) -> Result<String, Error> {
+		self.dbus.proxy(&self.path).apn()
 	}
 }
 

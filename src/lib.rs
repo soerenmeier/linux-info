@@ -20,6 +20,7 @@ pub mod storage;
 /// get bios / system information
 pub mod bios;
 #[cfg(feature = "network")]
+#[cfg_attr(docsrs, doc(cfg(feature = "network")))]
 pub mod network;
 
 mod util;
