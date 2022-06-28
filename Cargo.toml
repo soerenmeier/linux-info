@@ -18,7 +18,12 @@ name = "df_h"
 name = "dmidecode-mini"
 path = "./examples/dmidecode_mini.rs"
 
+[[example]]
+name = "network"
+required-features = ["network"]
+
 [features]
+network = ["nmdbus", "mmdbus", "dbus"]
 
 [dependencies]
 byte-parser = { version = "0.2.1", features = ["unstable-parse-iter"] }
@@ -26,3 +31,6 @@ libc = "0.2"
 simple-bytes = "0.2.11"
 memchr = "2.4.1"
 uuid = "0.8"
+nmdbus = { version = "1.20", optional = true }
+mmdbus = { version = "1.16", optional = true }
+dbus = { version = "0.9", optional = true }

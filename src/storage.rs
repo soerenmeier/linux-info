@@ -1,5 +1,4 @@
-//! get information about drives and raids.  
-//! Should this be called fs??
+//! get information about drives and raids.
 
 use crate::util::{read_to_string_mut, blkdev_sector_size};
 use crate::unit::DataSize;

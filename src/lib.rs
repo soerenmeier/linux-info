@@ -19,6 +19,9 @@ pub mod storage;
 #[cfg(any(target_arch = "x86_64", target_arch = "aarch64"))]
 /// get bios / system information
 pub mod bios;
+#[cfg(feature = "network")]
+#[cfg_attr(docsrs, doc(cfg(feature = "network")))]
+pub mod network;
 
 mod util;
 
