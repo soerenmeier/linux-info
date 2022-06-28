@@ -1,10 +1,10 @@
 [package]
 name = "linux-info"
 description = "Get every info about your linux system."
-version = "0.1.9"
+version = "0.1.10"
 authors = ["Sören Meier <soeren@s-me.ch>"]
 repository = "https://github.com/soerenmeier/linux-info"
-edition = "2018"
+edition = "2021"
 license = "MIT OR Apache-2.0"
 keywords = ["linux", "hardware"]
 categories = ["hardware-support"]
