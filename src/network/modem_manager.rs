@@ -182,6 +182,11 @@ impl Modem {
 
 #[repr(i32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1")
+)]
 pub enum ModemState {
 	/// The modem is unusable.
 	Failed = -1,
@@ -289,6 +294,11 @@ macro_rules! modem_band {
 	($($var:ident = $expr:expr),*) => (
 		#[repr(u32)]
 		#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+		#[cfg_attr(
+			feature = "serde",
+			derive(serde1::Serialize, serde1::Deserialize),
+			serde(crate = "serde1")
+		)]
 		pub enum ModemBand {
 			$($var = $expr),*
 		}
@@ -441,6 +451,11 @@ modem_band! {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1", rename = "camelCase")
+)]
 pub struct SignalCdma {
 	/// The CDMA1x RSSI (Received Signal Strength Indication), in dBm
 	pub rssi: f64,
@@ -460,6 +475,11 @@ impl SignalCdma {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1", rename = "camelCase")
+)]
 pub struct SignalEvdo {
 	/// The CDMA EV-DO RSSI (Received Signal Strength Indication), in dBm
 	pub rssi: f64,
@@ -487,6 +507,11 @@ impl SignalEvdo {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1", rename = "camelCase")
+)]
 pub struct SignalGsm {
 	/// The GSM RSSI (Received Signal Strength Indication), in dBm
 	pub rssi: f64
@@ -502,6 +527,11 @@ impl SignalGsm {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1", rename = "camelCase")
+)]
 pub struct SignalUmts {
 	/// The UMTS RSSI (Received Signal Strength Indication), in dBm
 	pub rssi: f64,
@@ -525,6 +555,11 @@ impl SignalUmts {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1", rename = "camelCase")
+)]
 pub struct SignalLte {
 	/// The LTE RSSI (Received Signal Strength Indication), in dBm
 	pub rssi: f64,
@@ -552,6 +587,11 @@ impl SignalLte {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1", rename = "camelCase")
+)]
 pub struct SignalNr5g {
 	pub rsrq: f64,
 	pub rsrp: f64,

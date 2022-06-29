@@ -140,6 +140,11 @@ impl Ipv4Config {
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1")
+)]
 pub enum DeviceKind {
 	/// unknown device
 	Unknown = 0,
@@ -222,6 +227,11 @@ impl From<u32> for DeviceKind {
 
 #[repr(u32)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1")
+)]
 pub enum DeviceState {
 	/// the device's state is unknown
 	Unknown = 0,
