@@ -10,6 +10,8 @@ use dbus::arg::{RefArg, PropMap};
 
 use mmdbus::modem::Modem as ModemAccess;
 use mmdbus::modem_signal::ModemSignal;
+use mmdbus::modem_modem3gpp::ModemModem3gpp;
+use mmdbus::sim::Sim as SimTrait;
 
 const DBUS_NAME: &str = "org.freedesktop.ModemManager1";
 const DBUS_PATH: &str = "/org/freedesktop/ModemManager1";
@@ -176,6 +178,76 @@ impl Modem {
 		let data = self.dbus.proxy(&self.path).nr5g()?;
 		SignalNr5g::from_prop_map(data)
 			.ok_or_else(|| Error::new_failed("nr5g not found"))
+	}
+
+	/// List of numbers (e.g. MSISDN in 3GPP) being currently handled by this
+	/// modem.
+	pub fn own_numbers(&self) -> Result<Vec<String>, Error> {
+		self.dbus.proxy(&self.path).own_numbers()
+	}
+
+	/// The IMEI of the device.
+	/// 
+	/// ## Note
+	/// This interface will only be available once the modem is ready to be
+	/// registered in the cellular network. 3GPP devices will require a valid
+	/// unlocked SIM card before any of the features in the interface can be
+	/// used.
+	pub fn imei(&self) -> Result<String, Error> {
+		self.dbus.proxy(&self.path).imei()
+	}
+
+	///  Name of the operator to which the mobile is currently registered.
+	///
+	/// If the operator name is not known or the mobile is not registered to a
+	/// mobile network, this property will be an empty string.
+	/// 
+	/// ## Note
+	/// This interface will only be available once the modem is ready to be
+	/// registered in the cellular network. 3GPP devices will require a valid
+	/// unlocked SIM card before any of the features in the interface can be
+	/// used.
+	pub fn operator_name(&self) -> Result<String, Error> {
+		ModemModem3gpp::operator_name(&self.dbus.proxy(&self.path))
+	}
+
+	/// This SIM object is the one used for network registration and data
+	/// connection setup.
+	pub fn sim(&self) -> Result<Sim, Error> {
+		Ok(Sim {
+			path: self.dbus.proxy(&self.path).sim()?,
+			dbus: self.dbus.clone()
+		})
+	}
+}
+
+pub struct Sim {
+	dbus: Dbus,
+	path: Path<'static>
+}
+
+impl Sim {
+	/// The ICCID of the SIM card.
+	///
+	/// This may be available before the PIN has been entered depending on the
+	/// device itself.
+	pub fn identifier(&self) -> Result<String, Error> {
+		self.dbus.proxy(&self.path).sim_identifier()
+	}
+
+	/// The IMSI of the SIM card, if any.
+	pub fn imsi(&self) -> Result<String, Error> {
+		self.dbus.proxy(&self.path).imsi()
+	}
+
+	/// The EID of the SIM card, if any.
+	pub fn eid(&self) -> Result<String, Error> {
+		self.dbus.proxy(&self.path).eid()
+	}
+
+	/// The name of the network operator, as given by the SIM card, if known.
+	pub fn operator_name(&self) -> Result<String, Error> {
+		SimTrait::operator_name(&self.dbus.proxy(&self.path))
 	}
 }
 

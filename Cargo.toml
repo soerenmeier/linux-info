@@ -1,15 +1,13 @@
 [package]
 name = "linux-info"
 description = "Get every info about your linux system."
-version = "0.1.12"
+version = "0.1.13"
 authors = ["Sören Meier <soeren@s-me.ch>"]
 repository = "https://github.com/soerenmeier/linux-info"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 keywords = ["linux", "hardware"]
 categories = ["hardware-support"]
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [[example]]
 name = "df_h"
