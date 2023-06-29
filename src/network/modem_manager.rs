@@ -105,6 +105,16 @@ impl Modem {
 		self.dbus.proxy(&self.path).state()
 			.map(Into::into)
 	}
+
+	/// The current network access technologies used by the device to
+	/// communicate with the network.
+	///
+	/// If the device's access technology cannot be determined, Unknown will be
+	/// reported. 
+	pub fn access_techs(&self) -> Result<ModemAccessTechs, Error> {
+		self.dbus.proxy(&self.path).access_technologies()
+			.map(Into::into)
+	}
 	
 	/// Signal quality in percent (0 - 100) of the dominant access technology
 	/// the device is using to communicate with the network. Always 0 for
@@ -113,6 +123,20 @@ impl Modem {
 	/// recently taken. 
 	pub fn signal_quality(&self) -> Result<(u32, bool), Error> {
 		self.dbus.proxy(&self.path).signal_quality()
+	}
+
+	/// This property exposes the supported mode combinations, given as an array
+	/// of unsigned integer pairs, where:
+	///
+	/// The first integer is a bitmask of MMModemMode values, specifying the
+	/// allowed modes.
+	///
+	/// The second integer is a single MMModemMode, which specifies the
+	/// preferred access technology, among the ones defined in the allowed
+	/// modes. 
+	pub fn supported_modes(&self) -> Result<Vec<(ModemMode, ModemMode)>, Error> {
+		self.dbus.proxy(&self.path).supported_modes()
+			.map(|v| v.into_iter().map(|(a, b)| (a.into(), b.into())).collect())
 	}
 
 	/// A pair of MMModemMode values, where the first one is a bitmask
@@ -124,6 +148,32 @@ impl Modem {
 			.map(|(a, b)| (a.into(), b.into()))
 	}
 
+	/// Set the access technologies (e.g. 2G/3G/4G preference) the device is
+	/// currently allowed to use when connecting to a network.
+	///
+	/// The given combination should be supported by the modem, as specified
+	/// in the "SupportedModes" property. 
+	///
+	/// A pair of MMModemMode values, where the first one is a bitmask of
+	/// allowed modes, and the second one the preferred mode, if any. 
+	pub fn set_current_modes(
+		&self,
+		(allowed, preferred): (ModemMode, ModemMode)
+	) -> Result<(), Error> {
+		self.dbus.proxy(&self.path).set_current_modes(
+			(allowed.into(), preferred.into())
+		)
+	}
+
+	///  List of MMModemBand values, specifying the radio frequency and
+	/// technology bands supported by the device.
+	///
+	/// For POTS devices, only the MM_MODEM_BAND_ANY mode will be returned. 
+	pub fn supported_bands(&self) -> Result<Vec<ModemBand>, Error> {
+		self.dbus.proxy(&self.path).supported_bands()
+			.map(|v| v.into_iter().map(Into::into).collect())
+	}
+
 	/// List of MMModemBand values, specifying the radio frequency and
 	/// technology bands the device is currently using when connecting to a
 	/// network.
@@ -132,6 +182,19 @@ impl Modem {
 	pub fn current_bands(&self) -> Result<Vec<ModemBand>, Error> {
 		self.dbus.proxy(&self.path).current_bands()
 			.map(|v| v.into_iter().map(Into::into).collect())
+	}
+
+	/// Set the radio frequency and technology bands the device is currently
+	/// allowed to use when connecting to a network. 
+	///
+	/// List of MMModemBand values, to specify the bands to be used. 
+	pub fn set_current_bands(
+		&self,
+		bands: &[ModemBand]
+	) -> Result<(), Error> {
+		self.dbus.proxy(&self.path).set_current_bands(
+			bands.into_iter().map(|b| *b as u32).collect()
+		)
 	}
 
 	pub fn signal_setup(&self, rate: u32) -> Result<(), Error> {
@@ -197,7 +260,7 @@ impl Modem {
 		self.dbus.proxy(&self.path).imei()
 	}
 
-	///  Name of the operator to which the mobile is currently registered.
+	/// Name of the operator to which the mobile is currently registered.
 	///
 	/// If the operator name is not known or the mobile is not registered to a
 	/// mobile network, this property will be an empty string.
@@ -253,12 +316,13 @@ impl Sim {
 
 
 #[repr(i32)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 #[cfg_attr(
 	feature = "serde",
 	derive(serde1::Serialize, serde1::Deserialize),
 	serde(crate = "serde1")
 )]
+#[non_exhaustive]
 pub enum ModemState {
 	/// The modem is unusable.
 	Failed = -1,
@@ -308,6 +372,133 @@ impl From<i32> for ModemState {
 	}
 }
 
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1")
+)]
+#[non_exhaustive]
+/// Describes various access technologies that a device uses when registered
+/// with or connected to a network.
+pub enum ModemAccessTech {
+	/// The access technology used is unknown.
+	Unknown = 0,
+	/// Analog wireline telephone.
+	Pots = 1 << 0,
+	/// GSM.
+	Gsm = 1 << 1,
+	/// Compact GSM.
+	GsmCompact = 1 << 2,
+	/// GPRS.
+	Gprs = 1 << 3,
+	/// EDGE (ETSI 27.007: "GSM w/EGPRS").
+	Edge = 1 << 4,
+	/// UMTS (ETSI 27.007: "UTRAN").
+	Umts = 1 << 5,
+	/// HSDPA (ETSI 27.007: "UTRAN w/HSDPA").
+	Hsdpa = 1 << 6,
+	/// HSUPA (ETSI 27.007: "UTRAN w/HSUPA").
+	Hsupa = 1 << 7,
+	/// HSPA (ETSI 27.007: "UTRAN w/HSDPA and HSUPA").
+	Hspa = 1 << 8,
+	/// HSPA+ (ETSI 27.007: "UTRAN w/HSPA+").
+	HspaPlus = 1 << 9,
+	/// CDMA2000 1xRTT.
+	T1xRtt = 1 << 10,
+	/// CDMA2000 EVDO revision 0.
+	Evdo0 = 1 << 11,
+	/// CDMA2000 EVDO revision A.
+	EvdoA = 1 << 12,
+	/// CDMA2000 EVDO revision B.
+	EvdoB = 1 << 13,
+	/// LTE (ETSI 27.007: "E-UTRAN")
+	Lte = 1 << 14,
+	/// 5GNR (ETSI 27.007: "NG-RAN"). Since 1.14.
+	T5Gnr = 1 << 15,
+	/// Cat-M (ETSI 23.401: LTE Category M1/M2). Since 1.20.
+	LteCatM = 1 << 16,
+	/// NB IoT (ETSI 23.401: LTE Category NB1/NB2). Since 1.20.
+	LteNbIoT = 1 << 17,
+	/// Mask specifying all access technologies.
+	Any = u32::MAX
+}
+
+impl ModemAccessTech {
+	/// All access technologies except Unknown and Any
+	const ALL: &'static [ModemAccessTech] = &[
+		ModemAccessTech::Pots,
+		ModemAccessTech::Gsm,
+		ModemAccessTech::GsmCompact,
+		ModemAccessTech::Gprs,
+		ModemAccessTech::Edge,
+		ModemAccessTech::Umts,
+		ModemAccessTech::Hsdpa,
+		ModemAccessTech::Hsupa,
+		ModemAccessTech::Hspa,
+		ModemAccessTech::HspaPlus,
+		ModemAccessTech::T1xRtt,
+		ModemAccessTech::Evdo0,
+		ModemAccessTech::EvdoA,
+		ModemAccessTech::EvdoB,
+		ModemAccessTech::Lte,
+		ModemAccessTech::T5Gnr,
+		ModemAccessTech::LteCatM,
+		ModemAccessTech::LteNbIoT
+	];
+}
+
+/// A list of modem Access Technologies
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct ModemAccessTechs(u32);
+
+impl ModemAccessTechs {
+	/// Returns true if the access technology is unkwon
+	pub fn is_unknown(&self) -> bool {
+		self.0 == ModemAccessTech::Unknown as u32
+	}
+
+	/// Returns true if the access technology might be anything.
+	pub fn is_any(&self) -> bool {
+		self.0 == ModemAccessTech::Any as u32
+	}
+
+	pub fn iter<'a>(&'a self) -> impl Iterator<Item=ModemAccessTech> + 'a {
+		let is_unknown = self.is_unknown();
+		let is_any = self.is_any();
+		let allow_others = !is_unknown && !is_any;
+
+		// types cannot be dynamic with an if
+		// so we do some hackery
+		//
+		// maybe it would be better to move everything to a new struct
+
+		let unknown_iter = is_unknown
+			.then(|| ModemAccessTech::Unknown)
+			.into_iter();
+		let any_iter = is_any.then(|| ModemAccessTech::Any).into_iter();
+
+		let other_iter = ModemAccessTech::ALL.into_iter()
+			.map(|v| *v)
+			.filter(move |t| allow_others && self.0 & *t as u32 > 0);
+
+		unknown_iter.chain(any_iter).chain(other_iter)
+	}
+}
+
+impl From<u32> for ModemAccessTechs {
+	fn from(num: u32) -> Self {
+		Self(num)
+	}
+}
+
+impl From<ModemAccessTechs> for u32 {
+	fn from(a: ModemAccessTechs) -> Self {
+		a.0
+	}
+}
+
 const MODE_NONE: u32 = 0;
 /// CSD, GSM, and other circuit-switched technologies.
 const MODE_CS: u32 = 1 << 0;
@@ -327,38 +518,86 @@ const MODE_ANY: u32 = u32::MAX;
 pub struct ModemMode(u32);
 
 impl ModemMode {
+	/// Creates a new ModemNode where no mode is allowed.
+	pub fn new() -> Self {
+		ModemMode(MODE_NONE)
+	}
+
+	/// Any Mode is allowed, only allowed for POTS modems.
 	pub fn is_any(&self) -> bool {
 		self.0 == MODE_ANY
 	}
 
+	/// Set the mode to Any.
+	pub fn set_any(&mut self) {
+		self.0 = MODE_ANY;
+	}
+
+	/// No Mode is allowed.
 	pub fn is_none(&self) -> bool {
 		self.0 == MODE_NONE
 	}
 
+	/// CSD, GSM, and other circuit-switched technologies.
 	pub fn has_cs(&self) -> bool {
 		self.0 & MODE_CS > 0
 	}
 
+	/// Sets the CS mode (CSD, GSM, and other circuit-switched technologies).
+	pub fn set_cs(&mut self) {
+		self.0 |= MODE_CS;
+	}
+
+	/// GPRS, EDGE.
 	pub fn has_2g(&self) -> bool {
 		self.0 & MODE_2G > 0
 	}
 
+	/// Sets the 2g mode (GPRS, EDGE).
+	pub fn set_2g(&mut self) {
+		self.0 |= MODE_2G;
+	}
+
+	/// UMTS, HSxPA.
 	pub fn has_3g(&self) -> bool {
 		self.0 & MODE_3G > 0
 	}
 
+	/// Sets the 3g mode (UMTS, HSxPA).
+	pub fn set_3g(&mut self) {
+		self.0 |= MODE_3G;
+	}
+
+	/// LTE.
 	pub fn has_4g(&self) -> bool {
 		self.0 & MODE_4G > 0
 	}
 
+	/// Sets the 4g mode (LTE).
+	pub fn set_4g(&mut self) {
+		self.0 |= MODE_4G;
+	}
+
+	/// 5GNR
 	pub fn has_5g(&self) -> bool {
 		self.0 & MODE_5G > 0
+	}
+
+	/// Sets the 5g mode (5GNR).
+	pub fn set_5g(&mut self) {
+		self.0 |= MODE_5G;
 	}
 }
 
 impl From<u32> for ModemMode {
 	fn from(num: u32) -> Self {
 		Self(num)
+	}
+}
+
+impl From<ModemMode> for u32 {
+	fn from(mode: ModemMode) -> Self {
+		mode.0
 	}
 }
 
@@ -371,6 +610,7 @@ macro_rules! modem_band {
 			derive(serde1::Serialize, serde1::Deserialize),
 			serde(crate = "serde1")
 		)]
+		#[non_exhaustive]
 		pub enum ModemBand {
 			$($var = $expr),*
 		}
@@ -381,6 +621,12 @@ macro_rules! modem_band {
 					$($expr => Self::$var),*,
 					_ => Self::Unknown
 				}
+			}
+		}
+
+		impl From<ModemBand> for u32 {
+			fn from(b: ModemBand) -> Self {
+				b as u32
 			}
 		}
 	)
@@ -608,6 +854,8 @@ pub struct SignalUmts {
 	/// The UMTS RSSI (Received Signal Strength Indication), in dBm
 	pub rssi: f64,
 	/// The UMTS RSCP (Received Signal Code Power), in dBm
+	/// 
+	/// If zero, the value is probably missing
 	pub rscp: f64,
 	/// The UMTS Ec/Io, in dB
 	pub ecio: f64
@@ -618,8 +866,10 @@ impl SignalUmts {
 		Some(Self {
 			rssi: prop.get("rssi")?
 				.as_f64()?,
-			rscp: prop.get("rscp")?
-				.as_f64()?,
+			// it seems in my tests rscp does not get returned
+			rscp: prop.get("rscp")
+				.and_then(|v| v.as_f64())
+				.unwrap_or(0f64),
 			ecio: prop.get("ecio")?
 				.as_f64()?
 		})

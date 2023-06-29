@@ -8,6 +8,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 keywords = ["linux", "hardware"]
 categories = ["hardware-support"]
+rust-version = "1.56"
 
 [[example]]
 name = "df_h"
