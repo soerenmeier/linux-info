@@ -1,7 +1,7 @@
 [package]
 name = "linux-info"
 description = "Get every info about your linux system."
-version = "0.1.14"
+version = "0.1.15"
 authors = ["Sören Meier <soeren@s-me.ch>"]
 repository = "https://github.com/soerenmeier/linux-info"
 edition = "2021"
