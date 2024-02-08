@@ -316,7 +316,7 @@ impl Stat {
 	}
 
 	pub fn cpu_nth(&self, nth: usize) -> Option<CpuStat> {
-		let nk = format!("cpu{nth}");
+		let nk = format!("cpu{}", nth);
 		self.values().find(|(k, _)| *k == nk)
 			.map(|(_, v)| v.collect())
 	}
