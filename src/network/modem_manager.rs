@@ -260,6 +260,38 @@ impl Modem {
 		self.dbus.proxy(&self.path).imei()
 	}
 
+	/// A MMModem3gppRegistrationState value specifying the mobile
+	/// registration status as defined in 3GPP TS 27.007 section 10.1.19. 
+	///
+	/// ## Note
+	/// This interface will only be available once the modem is ready to be
+	/// registered in the cellular network. 3GPP devices will require a valid
+	/// unlocked SIM card before any of the features in the interface can be
+	/// used.
+	pub fn registration_state(&self) -> Result<RegistrationState, Error> {
+		ModemModem3gpp::registration_state(&self.dbus.proxy(&self.path))
+			.map(Into::into)
+	}
+
+	///  Code of the operator to which the mobile is currently registered.
+	///
+	/// Returned in the format "MCCMNC", where MCC is the three-digit ITU
+	/// E.212 Mobile Country Code and MNC is the two- or three-digit GSM
+	/// Mobile Network Code. e.g. e"31026" or "310260".
+	///
+	/// If the MCC and MNC are not known or the mobile is not registered
+	/// to a mobile network, this property will be a zero-length (blank)
+	/// string.
+	/// 
+	/// ## Note
+	/// This interface will only be available once the modem is ready to be
+	/// registered in the cellular network. 3GPP devices will require a valid
+	/// unlocked SIM card before any of the features in the interface can be
+	/// used.
+	pub fn operator_code(&self) -> Result<String, Error> {
+		ModemModem3gpp::operator_code(&self.dbus.proxy(&self.path))
+	}
+
 	/// Name of the operator to which the mobile is currently registered.
 	///
 	/// If the operator name is not known or the mobile is not registered to a
@@ -930,5 +962,40 @@ impl SignalNr5g {
 			snr: prop.get("snr")?
 				.as_f64()?
 		})
+	}
+}
+
+#[repr(u32)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[cfg_attr(
+	feature = "serde",
+	derive(serde1::Serialize, serde1::Deserialize),
+	serde(crate = "serde1")
+)]
+#[non_exhaustive]
+pub enum RegistrationState {
+	/// Not registered, not searching for new operator to register.
+	Idle = 0,
+	/// Registered on home network.
+	Home = 1,
+	/// Not registered, searching for new operator to register with.
+	Searching = 2,
+	/// Registration denied.
+	Denied = 3,
+	/// Unknown registration status.
+	Unknown = 4,
+	/// Registered on a roaming network.
+	Roaming = 5
+}
+
+impl From<u32> for RegistrationState {
+	fn from(num: u32) -> Self {
+		if num > 5 {
+		Self::Unknown
+		} else {
+			unsafe {
+				*(&num as *const u32 as *const Self)
+			}
+		}
 	}
 }
